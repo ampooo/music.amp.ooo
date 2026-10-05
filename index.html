@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>music.amp.ooo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:    #0D0012;
+  --fg:    #F5F4F0;
+  --muted: #888780;
+  --faint: #2A1F30;
+  --font:  'Courier New', Courier, monospace;
+  --fs:    12px;
+  --pad:   2rem;
+  --gold:  #C9A84C;
+  --silver:#A0A0A0;
+  --bronze:#8B5E3C;
+}
+
+body{
+  background:var(--bg);
+  color:var(--fg);
+  font-family:var(--font);
+  font-size:var(--fs);
+  line-height:1.75;
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+}
+
+/* NAV */
+nav{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  width:100%;
+  padding:1.75rem var(--pad) 1rem;
+}
+.wordmark{color:var(--fg);font-family:var(--font);font-size:var(--fs);font-weight:normal;text-decoration:none;letter-spacing:-0.01em}
+.nav-links{display:flex;gap:1.5rem}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:var(--fs);transition:color 0.15s}
+.nav-links a:hover{color:var(--fg)}
+.nav-links a.active{color:var(--fg);font-weight:bold}
+
+.divider{border:none;border-top:0.5px solid var(--faint);margin:0}
+
+/* TOOLBAR */
+.container{width:100%;padding:0 var(--pad)}
+
+.toolbar{
+  display:flex;align-items:center;gap:1rem;
+  padding:0.75rem 0;border-bottom:0.5px solid var(--faint);
+}
+.count-label{color:var(--muted);font-size:11px;letter-spacing:0.06em}
+.toolbar-right{margin-left:auto;display:flex;align-items:center;gap:1rem}
+.view-btns{display:flex;gap:0.5rem}
+.view-btn{background:none;border:none;color:var(--muted);font-family:var(--font);font-size:11px;letter-spacing:0.06em;cursor:pointer;padding:0;transition:color 0.15s}
+.view-btn:hover{color:var(--fg)}
+.view-btn.active{color:var(--fg);font-weight:bold}
+.search-wrap{position:relative}
+.search-bar{display:flex;align-items:center;border:0.5px solid var(--faint);transition:border-color 0.15s}
+.search-bar:focus-within{border-color:var(--fg)}
+.search-input{background:none;border:none;color:var(--fg);font-family:var(--font);font-size:13px;padding:0.45rem 0.85rem;outline:none;width:260px}
+.search-input::placeholder{color:var(--muted)}
+.search-clear{background:none;border:none;color:var(--muted);font-family:var(--font);font-size:13px;padding:0 0.75rem;cursor:pointer;display:none;line-height:1;transition:color 0.15s}
+.search-clear:hover{color:var(--fg)}
+.search-clear.visible{display:block}
+.suggestions{position:absolute;top:calc(100% + 3px);right:0;min-width:100%;background:var(--bg);border:0.5px solid var(--muted);z-index:999;display:none;max-height:280px;overflow-y:auto}
+.suggestions.open{display:block}
+.suggestion-group-label{font-size:10px;letter-spacing:0.08em;color:var(--muted);padding:0.5rem 0.85rem 0.2rem}
+.suggestion-item{font-family:var(--font);font-size:12px;color:var(--fg);padding:0.4rem 0.85rem;cursor:pointer;display:flex;align-items:center;gap:0.5rem;transition:background 0.1s}
+.suggestion-item:hover,.suggestion-item.selected{background:var(--faint)}
+.suggestion-tag{font-size:10px;color:var(--muted);border:0.5px solid var(--faint);padding:1px 5px}
+.active-filter{display:flex;align-items:center;gap:0.4rem;font-size:11px;color:var(--fg);border:0.5px solid var(--muted);padding:0.3rem 0.6rem;white-space:nowrap}
+.active-filter button{background:none;border:none;color:var(--muted);cursor:pointer;font-family:var(--font);font-size:12px;padding:0;line-height:1;transition:color 0.15s}
+.active-filter button:hover{color:var(--fg)}
+
+
+/* LIST VIEW */
+.list-view .album-list{display:block}
+
+.list-view .album-row{
+  display:grid;
+  grid-template-columns:2.5rem 72px 1fr 1fr 160px;
+  align-items:center;
+  gap:0 1rem;
+  padding:0.75rem 0;
+  border-bottom:0.5px solid var(--faint);
+  transition:background 0.15s;
+}
+.list-view .album-row:hover{background:rgba(255,255,255,0.02)}
+
+.list-view .row-rank{
+  font-size:11px;color:var(--muted);
+  letter-spacing:0.06em;text-align:right;font-style:italic;
+}
+.list-view .album-row[data-rank="1"] .row-rank{color:var(--gold);font-weight:bold}
+.list-view .album-row[data-rank="2"] .row-rank{color:var(--silver);font-weight:bold}
+.list-view .album-row[data-rank="3"] .row-rank{color:var(--bronze);font-weight:bold}
+
+.list-view .row-thumb{width:72px;height:72px;object-fit:cover;display:block;background:var(--faint);flex-shrink:0}
+.list-view .row-thumb-placeholder{width:72px;height:72px;background:var(--faint);flex-shrink:0}
+
+.list-view .row-meta{min-width:0}
+.list-view .row-album{font-size:13px;font-weight:bold;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--fg)}
+.list-view .album-row[data-rank="1"] .row-album{color:var(--gold)}
+.list-view .album-row[data-rank="2"] .row-album{color:var(--silver)}
+.list-view .album-row[data-rank="3"] .row-album{color:var(--bronze)}
+.list-view .row-artist{color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-view .row-sub{color:var(--muted);font-size:11px}
+
+.list-view .row-tags{
+  display:flex;flex-wrap:wrap;gap:0.35rem;justify-content:center;align-content:center;
+}
+
+.list-view .row-right{display:flex;flex-direction:column;align-items:flex-start;gap:0.35rem;padding-left:0}
+.list-view .row-links{display:flex;flex-direction:column;gap:0.4rem}
+
+/* GRID VIEW */
+.grid-view .album-list{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin:0 calc(-1 * var(--pad));width:calc(100% + 2 * var(--pad))}
+.grid-view .album-row{display:flex;flex-direction:column;border-right:0.5px solid var(--faint);border-bottom:0.5px solid var(--faint);padding:0.75rem;gap:0.5rem}
+
+.grid-view .row-rank{font-size:11px;color:var(--muted);letter-spacing:0.06em;font-style:italic}
+.grid-view .album-row[data-rank="1"] .row-rank{color:var(--gold);font-weight:bold}
+.grid-view .album-row[data-rank="2"] .row-rank{color:var(--silver);font-weight:bold}
+.grid-view .album-row[data-rank="3"] .row-rank{color:var(--bronze);font-weight:bold}
+
+.grid-view .thumb-wrap{width:100%;aspect-ratio:1;overflow:hidden;flex-shrink:0}
+.grid-view .row-thumb{width:100%;height:100%;object-fit:cover;display:block;background:var(--faint)}
+.grid-view .row-thumb-placeholder{width:100%;height:100%;background:var(--faint)}
+
+.grid-view .row-album{
+  font-size:13px;font-weight:bold;letter-spacing:-0.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--fg);
+}
+.grid-view .album-row[data-rank="1"] .row-album{color:var(--gold)}
+.grid-view .album-row[data-rank="2"] .row-album{color:var(--silver)}
+.grid-view .album-row[data-rank="3"] .row-album{color:var(--bronze)}
+.grid-view .row-artist{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grid-view .row-sub{font-size:11px;color:var(--muted)}
+.grid-view .row-tags{display:flex;flex-wrap:wrap;gap:0.25rem;justify-content:center;margin-top:auto}
+.grid-view .row-links{display:flex;flex-direction:column;gap:0.3rem}
+.grid-view .row-right{display:contents}
+
+/* TAGS — boxed, no # */
+.tag{
+  font-family:var(--font);
+  font-size:10px;
+  letter-spacing:0.04em;
+  color:var(--muted);
+  cursor:pointer;
+  transition:color 0.15s, border-color 0.15s;
+  white-space:nowrap;
+  border:0.5px solid var(--faint);
+  padding:1px 6px;
+}
+.tag:hover,.tag.active-tag{color:var(--fg);border-color:var(--muted)}
+
+/* LINKS */
+.link-a{font-family:var(--font);font-size:11px;color:var(--muted);text-decoration:none;transition:color 0.15s;letter-spacing:0.02em;display:inline-flex;align-items:center;gap:0.3rem}
+.link-a:hover{color:var(--fg)}
+.link-spotify{color:#1DB954}
+.link-spotify:hover{color:#1ed760}
+.link-apple{color:#FC3C5A}
+.link-apple:hover{color:#ff6070}
+.link-soundcloud{color:#FF5500}
+.link-soundcloud:hover{color:#ff7733}
+
+/* shimmer */
+.art-loading{background:linear-gradient(90deg,var(--faint) 25%,var(--bg) 50%,var(--faint) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.loading-state,.empty-state{padding:3rem 0;color:var(--muted);font-size:var(--fs)}
+.error-notice{padding:1rem 0;color:var(--muted);font-size:var(--fs);line-height:1.75;border-top:0.5px solid var(--faint)}
+
+footer{
+  margin-top:auto;border-top:0.5px solid var(--faint);
+  padding:2.5rem var(--pad);width:100%;
+  color:var(--muted);font-size:11px;letter-spacing:0.06em;
+  display:flex;justify-content:space-between;
+}
+
+.mobile-detail{display:none}
+
+@media(max-width:600px){
+  :root{--pad:1rem}
+
+  /* nav */
+  .nav-links{gap:1rem}
+
+  /* toolbar: stack count on its own line, search full width below */
+  .toolbar{flex-wrap:wrap;gap:0.5rem;padding:0.6rem 0}
+  .toolbar-right{width:100%;justify-content:space-between}
+  .search-wrap{flex:1}
+  .search-bar{width:100%}
+  .search-input{width:100%;min-width:0}
+
+  /* list view: rank + thumb + meta stacked cleanly, hide right cols */
+  .list-view .album-row{
+    grid-template-columns:2rem 64px 1fr;
+    gap:0 0.75rem;
+    padding:0.65rem 0;
+    align-items:center;
+  }
+  .list-view .row-rank{
+    font-size:12px;
+    padding:0;
+    text-align:center;
+  }
+  .list-view .row-thumb{width:64px;height:64px}
+  .list-view .row-thumb-placeholder{width:64px;height:64px}
+  .list-view .thumb-wrap{width:64px;height:64px;flex-shrink:0}
+  .list-view .row-album{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .list-view .row-artist{font-size:11px}
+  .list-view .row-sub{display:none}
+  .list-view .row-tags{display:none}
+  .list-view .row-right{display:none}
+  .list-view .row-meta .stars-wrap{display:none !important}
+
+  /* mobile expand */
+  .list-view .album-row{cursor:pointer}
+  .mobile-detail{
+    grid-column:2 / span 2;
+    padding:0.4rem 0 0.5rem;
+    flex-direction:column;
+    gap:0.4rem;
+  }
+  .list-view .album-row.expanded .mobile-detail{display:flex}
+  .mobile-detail .row-tags{display:flex;flex-wrap:wrap;gap:0.35rem}
+  .mobile-detail .row-links{display:flex;flex-direction:column;gap:0.4rem}
+
+  /* grid: 2 columns, hide tags */
+  .grid-view .album-list{
+    grid-template-columns:repeat(2,1fr);
+    margin:0 calc(-1 * var(--pad));
+    width:calc(100% + 2 * var(--pad));
+  }
+  .grid-view .row-tags{display:none}
+  .grid-view .row-sub{display:none}
+  .grid-view .row-links{flex-direction:row;flex-wrap:wrap;gap:0.4rem}
+  .grid-view .row-album{font-size:12px}
+  .grid-view .row-artist{font-size:10px}
+}
+
+/* STAR RATINGS */
+.stars{
+  display:flex;
+  gap:2px;
+  align-items:center;
+}
+.star{
+  cursor:pointer;
+  font-size:14px;
+  color:var(--faint);
+  transition:color 0.1s;
+  line-height:1;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.star.lit{color:#C9A84C}
+.star.half{color:var(--faint);position:relative;display:inline-block}
+.star.half::before{content:"★";color:#C9A84C;position:absolute;width:50%;overflow:hidden;left:0}
+
+.grid-view .stars{padding:0 0 0.25rem}
+.list-view .stars{margin-top:0.25rem}
+
+/* Stars wrap — always flex on desktop */
+.stars-wrap{display:flex !important}
+
+/* YEAR BADGE */
+.year-badge{
+  font-size:10px;
+  letter-spacing:0.04em;
+  color:var(--muted);
+  cursor:pointer;
+  transition:color 0.15s;
+  margin-left:0.35rem;
+  font-style:italic;
+}
+.year-badge:hover{color:var(--fg)}
+
+/* STARS LABEL WRAP */
+.stars-wrap{
+  display:flex;
+  align-items:center;
+  gap:0.4rem;
+  margin-top:0.2rem;
+}
+.stars-label{
+  font-size:10px;
+  letter-spacing:0.04em;
+  color:var(--muted);
+  white-space:nowrap;
+}
+.mobile-detail .stars-wrap{
+  padding-bottom:0.1rem;
+}
+
+/* MOBILE CHEVRON */
+.mobile-chevron{display:none}
+@media(max-width:600px){
+  .row-artist-line{display:flex;align-items:center;justify-content:space-between}
+  .mobile-chevron{
+    display:block;
+    font-size:13px;
+    color:var(--muted);
+    user-select:none;
+    -webkit-user-select:none;
+    flex-shrink:0;
+    padding-left:0.5rem;
+  }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="wordmark" href="#" onclick="resetAll();return false;">music.amp.ooo</a>
+  <div class="nav-links">
+    <a href="https://amp.ooo" target="_blank" rel="noopener">ooo</a>
+  </div>
+</nav>
+<hr class="divider">
+
+<div class="container">
+  <div class="toolbar">
+    <span class="count-label" id="count-label">— albums</span>
+    <div class="toolbar-right">
+      <div class="view-btns">
+        <button class="view-btn active" id="btn-list" onclick="setView('list')">list</button>
+        <button class="view-btn" id="btn-grid" onclick="setView('grid')">grid</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem">
+        <div id="active-filter-wrap" style="display:none">
+          <div class="active-filter">
+            <span id="active-filter-label"></span>
+            <button onclick="clearGenre()">x</button>
+          </div>
+        </div>
+        <div class="search-wrap">
+          <div class="search-bar">
+            <input class="search-input" id="search" type="text" placeholder="search or filter by genre..." oninput="onSearchInput()" onkeydown="onSearchKey(event)" autocomplete="off">
+            <button class="search-clear" id="search-clear" onclick="clearSearch()">x</button>
+          </div>
+          <div class="suggestions" id="suggestions"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="status"></div>
+  <div id="main" class="list-view">
+    <div id="album-list" class="album-list"></div>
+  </div>
+</div>
+
+<footer>
+  <span>music.amp.ooo</span>
+  <span>2025</span>
+</footer>
+
+<script>
+let allAlbums = [];
+let activeGenre = '';
+let currentView = 'list';
+const artCache = {};
+
+function setView(v) {
+  currentView = v;
+  document.getElementById('main').className = v + '-view';
+  document.getElementById('btn-list').classList.toggle('active', v === 'list');
+  document.getElementById('btn-grid').classList.toggle('active', v === 'grid');
+  document.getElementById('btn-list').style.fontWeight = v === 'list' ? 'bold' : 'normal';
+  document.getElementById('btn-grid').style.fontWeight = v === 'grid' ? 'bold' : 'normal';
+  applyFilter();
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/^"|"$/g,'').replace(/\r/g,''));
+  return lines.slice(1).map(line => {
+    const vals = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { vals.push(cur.trim()); cur = ''; }
+      else { cur += c; }
+    }
+    vals.push(cur.trim());
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = (vals[i] || '').replace(/^"|"$/g,'').replace(/\r/g,'').trim());
+    return obj;
+  }).filter(r => r['album'] || r['artist']);
+}
+
+function formatLength(raw) {
+  if (!raw || !raw.trim()) return '';
+  var parts = raw.trim().split(':').map(function(p){ return parseInt(p,10); });
+  if (parts.length === 3) {
+    var h=parts[0], m=parts[1], s=parts[2];
+    return (h?h+'h ':'')+( m?m+'m ':'')+( s?s+'s':'');
+  } else if (parts.length === 2) {
+    var m=parts[0], s=parts[1];
+    return (m?m+'m ':'')+( s?s+'s':'');
+  }
+  return raw;
+}
+
+function normalize(row, idx) {
+  var lastfm = (row['last.fm tags'] || '').split(',').map(function(t){ return t.trim(); }).filter(Boolean);
+  var genre  = (row['genre'] || '').split(',').map(function(t){ return t.trim(); }).filter(Boolean);
+  var tags   = genre.concat(lastfm).filter(function(t,i,a){ return a.indexOf(t)===i; });
+  var spotifyUrl = row['spotify url'] || '';
+  var spotifyMatch = spotifyUrl.match(/album\/([A-Za-z0-9]+)/);
+  var spotifyId = spotifyMatch ? spotifyMatch[1] : '';
+  return {
+    rank:          parseInt(row['rank']) || (idx + 1),
+    album:         row['album']   || '',
+    artist:        row['artist']  || '',
+    type:          row['project type'] || '',
+    length:        formatLength(row['length'] || ''),
+    cover:         row['cover url'] || '',
+    spotify:       spotifyUrl,
+    spotifyId:     spotifyId,
+    apple:         row['apple music url'] || '',
+    tags:          tags,
+    year:          (row['year'] || '').trim(),
+    listenMonth:   (row['listen month'] || '').trim(),
+    listenability: parseInt(row['listenability']) || 0,
+    perfect:       (row['perfect'] || '').toLowerCase().trim() === 'yes'
+  };
+}
+
+async function fetchSpotifyArt(album) {
+  if (album.cover) return album.cover;
+  if (!album.spotify) return '';
+  if (album.spotify.indexOf('open.spotify.com') === -1) return '';
+  if (artCache[album.spotifyId]) return artCache[album.spotifyId];
+  try {
+    const r = await fetch('https://embed.spotify.com/oembed?url=' + encodeURIComponent(album.spotify));
+    if (!r.ok) return '';
+    const data = await r.json();
+    const art = data.thumbnail_url || '';
+    if (art) artCache[album.spotifyId] = art;
+    return art;
+  } catch { return ''; }
+}
+
+async function loadArtProgressively(albums) {
+  const BATCH = 4, DELAY = 100;
+  for (let i = 0; i < albums.length; i += BATCH) {
+    await Promise.all(albums.slice(i, i + BATCH).map(async a => {
+      const art = await fetchSpotifyArt(a);
+      if (!art) return;
+      a.cover = art;
+      var sid2 = a.spotifyId || String(a.rank);
+      var el = document.querySelector('[data-sid="' + sid2 + '"]');
+      if (!el) return;
+      if (el.tagName === 'IMG') { el.src = art; return; }
+      var img = document.createElement('img');
+      img.className = 'row-thumb';
+      img.src = art; img.alt = ''; img.loading = 'lazy';
+      img.setAttribute('data-sid', sid2);
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.objectFit = 'cover';
+      img.style.display = 'block';
+      img.style.opacity = '0';
+      img.onload = function() { img.style.transition = 'opacity 0.3s'; img.style.opacity = '1'; };
+      el.replaceWith(img);
+    }));
+    if (i + BATCH < albums.length) await new Promise(r => setTimeout(r, DELAY));
+  }
+}
+
+var allGenres = [];
+var activeYear = '';
+var selectedSuggestion = -1;
+
+function buildGenreDropdown(albums) {
+  var seen = {};
+  albums.forEach(function(a) { a.tags.forEach(function(t) { seen[t] = true; }); });
+  allGenres = Object.keys(seen).sort(function(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+}
+
+function selectGenre(g) {
+  activeGenre = g;
+  activeYear = '';
+  closeSuggestions();
+  document.getElementById('search').value = '';
+  document.getElementById('search-clear').classList.remove('visible');
+  var wrap = document.getElementById('active-filter-wrap');
+  if (g) {
+    wrap.style.display = 'flex';
+    document.getElementById('active-filter-label').textContent = g;
+  } else {
+    wrap.style.display = 'none';
+  }
+  applyFilter();
+}
+
+function selectYear(y) {
+  activeYear = y;
+  activeGenre = '';
+  closeSuggestions();
+  document.getElementById('search').value = '';
+  document.getElementById('search-clear').classList.remove('visible');
+  var wrap = document.getElementById('active-filter-wrap');
+  if (y) {
+    wrap.style.display = 'flex';
+    document.getElementById('active-filter-label').textContent = y;
+  } else {
+    wrap.style.display = 'none';
+  }
+  applyFilter();
+}
+
+function clearGenre() {
+  activeGenre = '';
+  activeYear = '';
+  document.getElementById('active-filter-wrap').style.display = 'none';
+  applyFilter();
+}
+
+function clearSearch() {
+  document.getElementById('search').value = '';
+  document.getElementById('search-clear').classList.remove('visible');
+  closeSuggestions();
+  applyFilter();
+}
+
+function onSearchInput() {
+  var q = document.getElementById('search').value;
+  document.getElementById('search-clear').classList.toggle('visible', q.length > 0);
+  selectedSuggestion = -1;
+  if (q.trim().length === 0) {
+    closeSuggestions();
+    applyFilter();
+    return;
+  }
+  showSuggestions(q.trim());
+  applyFilter();
+}
+
+function onSearchKey(e) {
+  var box = document.getElementById('suggestions');
+  var items = box.querySelectorAll('.suggestion-item');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    selectedSuggestion = Math.min(selectedSuggestion + 1, items.length - 1);
+    updateSuggestionHighlight(items);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    selectedSuggestion = Math.max(selectedSuggestion - 1, -1);
+    updateSuggestionHighlight(items);
+  } else if (e.key === 'Enter') {
+    if (selectedSuggestion >= 0 && items[selectedSuggestion]) {
+      items[selectedSuggestion].click();
+    }
+    closeSuggestions();
+  } else if (e.key === 'Escape') {
+    closeSuggestions();
+    document.getElementById('search').blur();
+  }
+}
+
+function updateSuggestionHighlight(items) {
+  items.forEach(function(el, i) {
+    el.classList.toggle('selected', i === selectedSuggestion);
+  });
+}
+
+var allYears = [];
+
+function showSuggestions(q) {
+  var ql = q.toLowerCase();
+  var box = document.getElementById('suggestions');
+
+  // Year matches (exact or partial)
+  var yearMatches = allYears.filter(function(y) {
+    return y.indexOf(ql) !== -1;
+  }).slice(0, 4);
+
+  // Genre matches
+  var genreMatches = allGenres.filter(function(g) {
+    return g.toLowerCase().indexOf(ql) !== -1;
+  }).slice(0, 5);
+
+  // Album/artist matches
+  var albumMatches = allAlbums.filter(function(a) {
+    return a.album.toLowerCase().indexOf(ql) !== -1 || a.artist.toLowerCase().indexOf(ql) !== -1;
+  }).slice(0, 5);
+
+  if (yearMatches.length === 0 && genreMatches.length === 0 && albumMatches.length === 0) {
+    closeSuggestions();
+    return;
+  }
+
+  var html = '';
+  if (yearMatches.length > 0) {
+    html += '<div class="suggestion-group-label">year</div>';
+    yearMatches.forEach(function(y) {
+      html += '<div class="suggestion-item" onclick="selectYear(\'' + esc(y) + '\')">' +
+        '<span class="suggestion-tag">' + esc(y) + '</span></div>';
+    });
+  }
+  if (genreMatches.length > 0) {
+    html += '<div class="suggestion-group-label">genre</div>';
+    genreMatches.forEach(function(g) {
+      html += '<div class="suggestion-item" onclick="selectGenre(\'' + esc(g) + '\');document.getElementById(\'search\').value=\'\'">' +
+        '<span class="suggestion-tag">' + esc(g) + '</span></div>';
+    });
+  }
+  if (albumMatches.length > 0) {
+    html += '<div class="suggestion-group-label">albums</div>';
+    albumMatches.forEach(function(a) {
+      html += '<div class="suggestion-item" onclick="closeSuggestions();applyFilter()">' +
+        '<span>' + esc(a.album) + '</span>' +
+        '<span style="color:var(--muted);font-size:11px">' + esc(a.artist) + '</span></div>';
+    });
+  }
+
+  box.innerHTML = html;
+  box.classList.add('open');
+}
+
+function closeSuggestions() {
+  var box = document.getElementById('suggestions');
+  box.classList.remove('open');
+  box.innerHTML = '';
+  selectedSuggestion = -1;
+}
+
+// Close suggestions when clicking outside
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.search-wrap')) closeSuggestions();
+});
+
+// Mobile row tap to expand
+document.getElementById('album-list').addEventListener('click', function(e) {
+  if (window.innerWidth > 600) return;
+  // Don't expand if tapping a link or tag
+  if (e.target.closest('a') || e.target.closest('.tag')) return;
+  var row = e.target.closest('.album-row');
+  if (!row) return;
+  var wasExpanded = row.classList.contains('expanded');
+  // Collapse all others
+  document.querySelectorAll('.album-row.expanded').forEach(function(r) {
+    r.classList.remove('expanded');
+    var ch = r.querySelector('.mobile-chevron');
+    if (ch) ch.innerHTML = '&#8964;';
+  });
+  if (!wasExpanded) {
+    row.classList.add('expanded');
+    var ch = row.querySelector('.mobile-chevron');
+    if (ch) ch.innerHTML = '&#8963;';
+  }
+});
+
+function applyFilter() {
+  var q = document.getElementById('search').value.toLowerCase().trim();
+  var filtered = allAlbums.filter(function(a) {
+    if (activeGenre && !a.tags.some(function(t){ return t.toLowerCase() === activeGenre.toLowerCase(); })) return false;
+    if (activeYear && a.year !== activeYear) return false;
+    if (q && a.album.toLowerCase().indexOf(q) === -1 && a.artist.toLowerCase().indexOf(q) === -1 && a.tags.join(' ').toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+  renderAlbums(filtered);
+  loadArtProgressively(filtered);
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+function renderAlbums(albums) {
+  const list = document.getElementById('album-list');
+  if (!albums.length) { list.innerHTML = '<div class="empty-state">nothing found.</div>'; return; }
+  const tagMax = currentView === 'grid' ? 4 : 5;
+
+  list.innerHTML = albums.map(a => {
+    const sid = esc(a.spotifyId || String(a.rank));
+    const coverImg = a.cover
+      ? `<div class="thumb-wrap"><img class="row-thumb" src="${esc(a.cover)}" alt="" loading="lazy" data-sid="${sid}"></div>`
+      : `<div class="thumb-wrap"><div class="row-thumb-placeholder art-loading" data-sid="${sid}"></div></div>`;
+
+    const sub = [a.type, a.length].filter(Boolean).join(' · ');
+
+    const tagsHtml = a.tags.slice(0, tagMax).map(t =>
+      `<span class="tag${t===activeGenre?' active-tag':''}" onclick="selectGenre('${esc(t)}')">${esc(t)}</span>`
+    ).join('');
+
+    const SPOTIFY_SVG = '<svg width="11" height="11" viewBox="0 0 168 168" fill="currentColor"><path d="M84 0a84 84 0 1 0 0 168A84 84 0 0 0 84 0Zm38.6 121.2a5.23 5.23 0 0 1-7.2 1.74c-19.7-12-44.5-14.7-73.7-8a5.23 5.23 0 0 1-2.08-10.25c31.97-7.3 59.42-4.16 81.57 9.28a5.23 5.23 0 0 1 1.43 7.23Zm10.3-22.9a6.55 6.55 0 0 1-9 2.18C101 85.88 73.27 82.35 49.9 89.6a6.55 6.55 0 0 1-3.8-12.54c26.8-8.13 60.1-4.19 83 11.28a6.55 6.55 0 0 1 2.8 9.96Zm.89-23.84c-28.62-17-75.9-18.56-103.27-10.27a7.87 7.87 0 1 1-4.57-15.08c31.44-9.55 83.74-7.7 116.78 11.89a7.87 7.87 0 1 1-8.94 13.46Z"/></svg>';
+    const SC_SVG = '<svg width="14" height="9" viewBox="0 0 56 36" fill="currentColor"><path d="M0 26.6c0 2.4 2 4.4 4.4 4.4h.4l.6-4.4-.6-4.6C2 22 0 24 0 26.6zm6.4.8l.8-5.2-.8-9.2c-.2 0-.4.2-.4.4v13.6c0 .2.2.4.4.4zm2.4.4l1-5.6-1-9.6c-.2 0-.4.2-.4.4V27c0 .2.2.4.4.4l-.4.4zm2.6.2l.8-6-.8-9.8c-.2 0-.4.2-.4.4v15c0 .2.2.4.4.4zm2.6.2l.8-6.2-.8-8.4c-.2 0-.4.2-.4.4v14.2c0 .2.2.4.4.4zm2.6 0l.6-6.2-.6-7.8c-.2 0-.4.2-.4.4v13.6c0 .2.2.4.4.4zm2.6.2l.6-6.4-.6-8c-.2 0-.4.2-.4.4v14c0 .2.2.4.4.4zm2.4-.2l.6-6.2-.6-9c-.2 0-.4.2-.4.4v14.4c0 .2.2.4.4.4zm2.6.2l.4-6.4-.4-9.4c-.2 0-.4.2-.4.4v15c0 .2.2.4.4.4zm2.6 0h.2c0-.2.2-.4.2-.6v-20c0-.2-.2-.4-.4-.4-2.4 0-4.6.8-6.2 2.2-.6-5.8-5.4-10.2-11.4-10.2-1.4 0-2.8.4-4 1-.4.2-.6.6-.6 1V31h22z"/></svg>';
+    var streamLink = '';
+    if (a.spotify) {
+      if (a.spotify.indexOf('soundcloud.com') !== -1) {
+        streamLink = '<a href="' + esc(a.spotify) + '" target="_blank" rel="noopener" class="link-a link-soundcloud">' + SC_SVG + 'soundcloud</a>';
+      } else {
+        streamLink = '<a href="' + esc(a.spotify) + '" target="_blank" rel="noopener" class="link-a link-spotify">' + SPOTIFY_SVG + 'spotify</a>';
+      }
+    }
+    const spotifyLink = streamLink;
+    const APPLE_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>';
+    const appleLink = a.apple
+      ? '<a href="' + esc(a.apple) + '" target="_blank" rel="noopener" class="link-a link-apple">' + APPLE_SVG + 'apple music</a>'
+      : '';
+
+    return `<div class="album-row" data-rank="${a.rank}">
+      <div class="row-rank">${a.rank}</div>
+      ${coverImg}
+      <div class="row-meta">
+        <div class="row-album" title="${esc(a.album)}">${esc(a.album)}${a.perfect ? ' <span style="color:var(--gold);font-size:11px" title="perfect">★</span>' : ''}</div>
+        <div class="row-artist-line"><div class="row-artist">${esc(a.artist)}${a.year ? ` <span class="year-badge" onclick="event.stopPropagation();selectYear('${esc(a.year)}')" title="filter by ${esc(a.year)}">${esc(a.year)}</span>` : ''}</div><span class="mobile-chevron" data-chevron="${sid}">&#8964;</span></div>
+        ${sub ? `<div class="row-sub">${esc(sub)}</div>` : ''}
+        ${a.listenability > 0 ? `<div class="stars-wrap"><span class="stars-label">ease of listen</span><div class="stars" data-stars="${sid}">${starsHtml(sid, a.listenability)}</div></div>` : ''}
+      </div>
+      <div class="row-tags">${tagsHtml}</div>
+      <div class="row-right">
+        <div class="row-links">${spotifyLink}${appleLink}</div>
+      </div>
+      <div class="mobile-detail">
+        ${a.listenability > 0 ? `<div class="stars-wrap"><span class="stars-label">ease of listen</span><div class="stars" data-stars="${sid}-m">${starsHtml(sid, a.listenability)}</div></div>` : ''}
+        <div class="row-tags">${tagsHtml}</div>
+        <div class="row-links">${spotifyLink}${appleLink}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+
+// ── LISTENABILITY STARS (read-only, from sheet, Yelp-style) ─────────────────
+function starsHtml(albumId, rating) {
+  // rating is 1-5, supports .5 increments if ever needed
+  var html = '';
+  for (var i = 1; i <= 5; i++) {
+    var filled = rating >= i;
+    var half   = !filled && rating >= i - 0.5;
+    if (filled) {
+      html += '<span class="star lit">★</span>';
+    } else if (half) {
+      html += '<span class="star half">★</span>';
+    } else {
+      html += '<span class="star">★</span>';
+    }
+  }
+  return html;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+function resetAll() {
+  // Clear search
+  document.getElementById('search').value = '';
+  document.getElementById('search-clear').classList.remove('visible');
+  closeSuggestions();
+  // Clear genre + year
+  activeGenre = '';
+  activeYear = '';
+  var wrap = document.getElementById('active-filter-wrap');
+  if (wrap) wrap.style.display = 'none';
+  // Switch to list view
+  setView('list');
+  // Re-render all
+  applyFilter();
+}
+
+async function load() {
+  const status = document.getElementById('status');
+  status.innerHTML = '<div class="loading-state">loading...</div>';
+  try {
+    const r = await fetch('albums.csv');
+    if (!r.ok) throw new Error('http ' + r.status);
+    const text = await r.text();
+    const rows = parseCSV(text).map(normalize);
+    rows.sort((a,b) => a.rank - b.rank);
+    allAlbums = rows;
+    status.innerHTML = '';
+    buildGenreDropdown(rows);
+    // Build sorted unique years (newest first)
+    var yearSet = {};
+    rows.forEach(function(a){ if (a.year) yearSet[a.year] = true; });
+    allYears = Object.keys(yearSet).sort(function(a,b){ return parseInt(b)-parseInt(a); });
+    document.getElementById('count-label').textContent = rows.length + ' albums';
+    renderAlbums(rows);
+    loadArtProgressively(rows);
+  } catch(e) {
+    status.innerHTML = `<div class="error-notice">couldn't load albums.csv — ${e.message}<br>deploy to netlify with albums.csv in the same folder.</div>`;
+  }
+}
+
+load();
+</script>
+</body>
+</html>
